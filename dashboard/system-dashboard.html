@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>System Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:'Courier New',monospace;padding:20px}
+.header{text-align:center;padding:30px 0;border-bottom:1px solid #333}
+.header h1{font-size:2em;color:#00ff88;letter-spacing:4px}
+.header .sub{color:#666;margin-top:8px;font-size:0.85em}
+.stats{display:flex;gap:20px;justify-content:center;margin:30px 0;flex-wrap:wrap}
+.stat{background:#111;border:1px solid #222;padding:20px 30px;border-radius:8px;text-align:center;min-width:150px}
+.stat .num{font-size:2.5em;color:#00ff88;font-weight:bold}
+.stat .label{color:#666;font-size:0.75em;margin-top:5px;text-transform:uppercase}
+.status{text-align:center;margin:20px 0}
+.status .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.dot.up{background:#00ff88;box-shadow:0 0 8px #00ff88}
+.dot.down{background:#ff4444;box-shadow:0 0 8px #ff4444}
+.entries{max-width:1000px;margin:30px auto}
+.entry{background:#111;border:1px solid #222;border-radius:8px;padding:20px;margin-bottom:15px;transition:border-color 0.3s}
+.entry:hover{border-color:#00ff88}
+.entry .name{color:#00ff88;font-size:1.1em;font-weight:bold}
+.entry .summary{color:#aaa;margin:10px 0;font-size:0.9em;line-height:1.5}
+.entry .meta{display:flex;gap:15px;flex-wrap:wrap;margin-top:10px}
+.tag{background:#1a2a1a;color:#00ff88;padding:3px 10px;border-radius:12px;font-size:0.7em}
+.role{background:#1a1a2a;color:#6688ff;padding:3px 10px;border-radius:12px;font-size:0.7em}
+.related{color:#666;font-size:0.75em;margin-top:8px}
+.loading{text-align:center;padding:60px;color:#666}
+.error{text-align:center;padding:40px;color:#ff4444}
+.footer{text-align:center;padding:30px;color:#333;font-size:0.75em;border-top:1px solid #1a1a1a;margin-top:40px}
+.config-note{background:#111;border:1px solid #333;border-left:3px solid #ffcc00;padding:14px 16px;margin:20px auto;max-width:700px;border-radius:4px;font-size:0.8em;color:#999}
+.config-note strong{color:#ffcc00}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>&#9651; SYSTEM DASHBOARD</h1>
+<div class="sub">Live metadata from Supabase via n8n | zero-cost-ops</div>
+</div>
+
+<!-- Configuration note — remove after setting your endpoint -->
+<div class="config-note" id="configNote">
+  <strong>Setup required:</strong> Edit the <code>API</code> constant below to point to your n8n webhook URL.
+  Format: <code>https://YOUR-N8N-INSTANCE.onrender.com/webhook/system</code>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="num" id="count">--</div><div class="label">Entries</div></div>
+<div class="stat"><div class="num" id="linked">--</div><div class="label">Cross-linked</div></div>
+<div class="stat"><div class="num" id="sources">--</div><div class="label">Sources</div></div>
+<div class="stat"><div class="num" id="latency">--</div><div class="label">ms Latency</div></div>
+</div>
+<div class="status" id="statusBar"><span class="dot down"></span> Checking endpoint...</div>
+<div class="entries" id="entries"><div class="loading">Loading system metadata...</div></div>
+<div class="footer">
+  System Dashboard v1.0 · <a href="https://github.com/ProyectoAna/zero-cost-ops" style="color:#444;text-decoration:none">zero-cost-ops</a><br>
+  Endpoint: <span id="footerEndpoint" style="color:#444">not configured</span>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+//  CONFIGURATION
+//  Replace with your n8n webhook URL.
+//  The webhook should query Supabase and return an array of metadata entries.
+// ════════════════════════════════════════════════════════════════════
+
+const API = null; // Set to: 'https://YOUR-N8N-INSTANCE.onrender.com/webhook/system'
+
+// ════════════════════════════════════════════════════════════════════
+//  DEMO DATA
+//  Used when API is null. Shows what the dashboard looks like with data.
+// ════════════════════════════════════════════════════════════════════
+
+const DEMO_DATA = [
+  {
+    file_name: 'auto_slack_1743400000000',
+    summary: 'Team sync on Q2 roadmap priorities — three features deprioritized, focus shifted to infrastructure stability.',
+    tags: ['roadmap', 'q2', 'infrastructure'],
+    narrative_role: 'setup',
+    related_ids: ['uuid-1', 'uuid-2'],
+    source: 'slack',
+  },
+  {
+    file_name: 'auto_github_1743300000000',
+    summary: 'Merged PR #47: Add RLS policies to bookings table. All Supabase security checklist items complete.',
+    tags: ['supabase', 'security', 'rls'],
+    narrative_role: 'integration',
+    related_ids: ['uuid-3'],
+    source: 'github',
+  },
+  {
+    file_name: 'auto_slack_1743200000000',
+    summary: 'WF-04 timeline engine first successful run: 234 entries clustered into 3 temporal groups.',
+    tags: ['n8n', 'timeline', 'clustering'],
+    narrative_role: 'realisation',
+    related_ids: [],
+    source: 'slack',
+  },
+  {
+    file_name: 'auto_manual_1743100000000',
+    summary: 'Architecture decision: stay on Supabase free tier until 40K monthly API calls. Current: 12K.',
+    tags: ['architecture', 'supabase', 'cost'],
+    narrative_role: 'exploration',
+    related_ids: ['uuid-4', 'uuid-5', 'uuid-6'],
+    source: 'manual',
+  },
+  {
+    file_name: 'auto_cloudflare_1743000000000',
+    summary: 'DNS propagation complete for custom domain. HTTPS certificates auto-provisioned via Cloudflare.',
+    tags: ['cloudflare', 'dns', 'https'],
+    narrative_role: 'integration',
+    related_ids: [],
+    source: 'cloudflare',
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════
+//  LOAD AND RENDER
+// ════════════════════════════════════════════════════════════════════
+
+async function load() {
+  const t0 = Date.now();
+
+  // Hide config note if endpoint is set
+  if (API) {
+    const note = document.getElementById('configNote');
+    if (note) note.style.display = 'none';
+    document.getElementById('footerEndpoint').textContent = API.replace('https://', '').split('/webhook')[0];
+  }
+
+  try {
+    let data;
+
+    if (API) {
+      const r = await fetch(API);
+      const ms = Date.now() - t0;
+      data = await r.json();
+      document.getElementById('latency').textContent = ms;
+    } else {
+      // Demo mode — simulate latency
+      await new Promise(r => setTimeout(r, 120));
+      data = DEMO_DATA;
+      document.getElementById('latency').textContent = (Date.now() - t0);
+      document.getElementById('footerEndpoint').textContent = 'demo mode — no endpoint configured';
+    }
+
+    document.getElementById('count').textContent = data.length;
+
+    const linked = data.filter(e => e.related_ids && e.related_ids.length > 0).length;
+    document.getElementById('linked').textContent = linked;
+
+    const srcs = [...new Set(data.map(e => e.source).filter(Boolean))];
+    document.getElementById('sources').textContent = srcs.length;
+
+    const statusLabel = API
+      ? `Endpoint UP | ${data.length} entries | ${document.getElementById('latency').textContent}ms`
+      : `Demo mode | ${data.length} entries`;
+
+    document.getElementById('statusBar').innerHTML =
+      `<span class="dot up"></span> ${statusLabel}`;
+
+    const el = document.getElementById('entries');
+    el.innerHTML = data.map(e => `
+      <div class="entry">
+        <div class="name">${e.file_name}</div>
+        <div class="summary">${e.summary || 'No summary'}</div>
+        <div class="meta">
+          ${(e.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}
+          ${e.narrative_role ? `<span class="role">${e.narrative_role}</span>` : ''}
+        </div>
+        ${e.related_ids && e.related_ids.length
+          ? `<div class="related">Related: ${e.related_ids.length} connection${e.related_ids.length !== 1 ? 's' : ''}</div>`
+          : ''}
+      </div>
+    `).join('');
+
+  } catch (err) {
+    document.getElementById('statusBar').innerHTML =
+      `<span class="dot down"></span> Endpoint unreachable`;
+    document.getElementById('entries').innerHTML =
+      `<div class="error">Failed to reach endpoint: ${err.message}<br><br>
+       <small style="color:#555">Check your n8n webhook URL and ensure the workflow is active.</small></div>`;
+  }
+}
+
+load();
+setInterval(load, 60000); // Refresh every minute
+</script>
+</body>
+</html>

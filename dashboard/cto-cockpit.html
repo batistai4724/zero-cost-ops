@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CTO Cockpit">
+<link rel="manifest" href="manifest.json">
+<title>CTO Cockpit</title>
+<style>
+  /* ── RESET & BASE ─────────────────────────────────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:        #0a0a0a;
+    --bg-card:   #111111;
+    --bg-hover:  #1a1a1a;
+    --border:    #222222;
+    --border-hi: #333333;
+    --text:      #e0e0e0;
+    --text-dim:  #666666;
+    --text-muted:#444444;
+    --green:     #00ff88;
+    --yellow:    #ffcc00;
+    --red:       #ff4444;
+    --blue:      #6688ff;
+    --font:      'Courier New', Courier, monospace;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+
+  /* ── LAYOUT ───────────────────────────────────────────────────────── */
+  .cockpit {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 20px 16px env(safe-area-inset-bottom);
+  }
+
+  /* ── HEADER ───────────────────────────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-title h1 {
+    font-size: 1em;
+    color: var(--green);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .header-time {
+    color: var(--text-dim);
+    font-size: 0.75em;
+    letter-spacing: 1px;
+  }
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--green);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--green);
+    font-size: 0.9em;
+  }
+
+  /* ── MORNING SYNC BUTTON ──────────────────────────────────────────── */
+  .sync-btn {
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: var(--font);
+    font-size: 0.75em;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sync-btn:hover, .sync-btn:active {
+    background: var(--green);
+    color: var(--bg);
+  }
+  .sync-btn.loading {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ── SUMMARY PANEL ────────────────────────────────────────────────── */
+  .summary-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    font-size: 0.85em;
+    color: var(--text);
+    line-height: 1.6;
+    display: none;
+  }
+  .summary-panel.visible { display: block; }
+  .summary-panel .summary-label {
+    color: var(--green);
+    font-size: 0.7em;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* ── SECTION HEADERS ──────────────────────────────────────────────── */
+  .section-header {
+    color: var(--text-dim);
+    font-size: 0.7em;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── SEMAPHORE GRID ───────────────────────────────────────────────── */
+  .semaphores {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  @media (min-width: 480px) {
+    .semaphores { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .semaphore {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .semaphore:hover { background: var(--bg-hover); border-color: var(--border-hi); }
+
+  /* Status bar at top of card */
+  .semaphore::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .semaphore.green::before  { background: var(--green); }
+  .semaphore.yellow::before { background: var(--yellow); }
+  .semaphore.red::before    { background: var(--red); }
+  .semaphore.unknown::before{ background: var(--text-muted); }
+
+  .semaphore-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .semaphore-name {
+    font-size: 0.7em;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot.green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+  .dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .dot.red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+  .dot.unknown{ background: var(--text-muted); }
+
+  .semaphore-status {
+    font-size: 0.95em;
+    color: var(--text);
+    font-weight: bold;
+  }
+  .semaphore.green  .semaphore-status { color: var(--green); }
+  .semaphore.yellow .semaphore-status { color: var(--yellow); }
+  .semaphore.red    .semaphore-status { color: var(--red); }
+
+  .semaphore-detail {
+    font-size: 0.7em;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .semaphore-time {
+    font-size: 0.65em;
+    color: var(--text-muted);
+  }
+
+  /* ── INCIDENT LOG ─────────────────────────────────────────────────── */
+  .incidents {
+    margin-bottom: 24px;
+  }
+  .incident {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .incident-severity {
+    font-size: 0.65em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .incident-severity.p0 { background: #3a0a0a; color: var(--red); }
+  .incident-severity.p1 { background: #3a2a00; color: var(--yellow); }
+  .incident-severity.p2 { background: #1a1a2a; color: var(--blue); }
+  .incident-body { flex: 1; }
+  .incident-title {
+    font-size: 0.85em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .incident-meta {
+    font-size: 0.7em;
+    color: var(--text-dim);
+  }
+  .no-incidents {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-size: 0.85em;
+    color: var(--text-dim);
+  }
+
+  /* ── NEXT ACTIONS ─────────────────────────────────────────────────── */
+  .actions {
+    margin-bottom: 24px;
+  }
+  .action-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .action-item:hover { background: var(--bg-hover); }
+  .action-item.done { opacity: 0.4; }
+  .action-item.done .action-text { text-decoration: line-through; }
+  .action-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border-hi);
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    color: var(--green);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .action-item.done .action-checkbox {
+    background: #0a2a1a;
+    border-color: var(--green);
+  }
+  .action-text { font-size: 0.85em; color: var(--text); flex: 1; }
+  .action-tag {
+    font-size: 0.65em;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+
+  /* ── FOOTER ───────────────────────────────────────────────────────── */
+  .footer {
+    text-align: center;
+    padding: 20px 0;
+    color: var(--text-muted);
+    font-size: 0.65em;
+    letter-spacing: 1px;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  .footer a { color: var(--text-dim); text-decoration: none; }
+  .footer a:hover { color: var(--green); }
+
+  /* ── LAST REFRESH ─────────────────────────────────────────────────── */
+  .last-refresh {
+    text-align: right;
+    font-size: 0.65em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="cockpit">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title">
+      <div class="logo-mark">⌘</div>
+      <h1>CTO Cockpit</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="header-time" id="currentTime">--:--</span>
+      <button class="sync-btn" id="syncBtn" onclick="morningSync()">SYNC</button>
+    </div>
+  </div>
+
+  <!-- MORNING SYNC SUMMARY (hidden until triggered) -->
+  <div class="summary-panel" id="summaryPanel">
+    <div class="summary-label">Morning Sync — <span id="syncTime"></span></div>
+    <div id="summaryText"></div>
+  </div>
+
+  <!-- LAST REFRESH -->
+  <div class="last-refresh">Last refresh: <span id="lastRefresh">never</span></div>
+
+  <!-- SEMAPHORES -->
+  <div class="section-header">Service Status</div>
+  <div class="semaphores" id="semaphores">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- INCIDENTS -->
+  <div class="section-header">Incident Log</div>
+  <div class="incidents" id="incidents">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- NEXT ACTIONS -->
+  <div class="section-header">Next Actions</div>
+  <div class="actions" id="actions">
+    <!-- Populated by JS -->
+  </div>
+
+  <div class="footer">
+    zero-cost-ops · <a href="https://github.com/ProyectoAna/zero-cost-ops" target="_blank">github.com/ProyectoAna/zero-cost-ops</a><br>
+    <span id="footerTime"></span>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+//  CONFIGURATION
+//  Edit this object to match your services and endpoints.
+// ════════════════════════════════════════════════════════════════════
+
+const CONFIG = {
+  // Your n8n instance URL (Render, self-hosted, or n8n Cloud)
+  // This endpoint should return JSON with service statuses
+  // Set to null to use demo data
+  statusEndpoint: null, // 'https://YOUR-N8N-INSTANCE.onrender.com/webhook/status',
+
+  // Supabase for incident log and actions (optional)
+  // Set to null to use demo data
+  supabaseUrl: null,    // 'https://YOUR-PROJECT.supabase.co',
+  supabaseKey: null,    // 'your-anon-key',
+
+  // Auto-refresh interval in milliseconds
+  refreshInterval: 60000, // 60 seconds
+
+  // Services to monitor — customize this list
+  services: [
+    {
+      id: 'n8n',
+      name: 'n8n',
+      // Replace with your health check URL
+      // pingUrl: 'https://YOUR-N8N.onrender.com/healthz',
+      pingUrl: null,
+      description: 'Automation engine',
+    },
+    {
+      id: 'supabase',
+      name: 'Supabase',
+      pingUrl: null,
+      description: 'Database & auth',
+    },
+    {
+      id: 'github',
+      name: 'GitHub',
+      pingUrl: null,
+      description: 'Repo & CI/CD',
+    },
+    {
+      id: 'cloudflare',
+      name: 'Cloudflare',
+      pingUrl: null,
+      description: 'DNS & CDN',
+    },
+    {
+      id: 'slack',
+      name: 'Slack',
+      pingUrl: null,
+      description: 'Team comms',
+    },
+    {
+      id: 'uptimerobot',
+      name: 'UptimeRobot',
+      pingUrl: null,
+      description: 'Uptime monitoring',
+    },
+  ],
+
+  // Demo data (used when endpoints are null)
+  // Replace this with real API calls once deployed
+  demoStatus: {
+    n8n:         { status: 'green',   label: 'Operational', detail: '3 workflows active', time: '2m ago' },
+    supabase:    { status: 'green',   label: 'Operational', detail: '47K / 50K API calls', time: '2m ago' },
+    github:      { status: 'green',   label: 'Operational', detail: '2 repos, CI passing', time: '5m ago' },
+    cloudflare:  { status: 'green',   label: 'Operational', detail: 'DNS OK · 0 errors', time: '2m ago' },
+    slack:       { status: 'yellow',  label: 'Degraded',    detail: 'Webhook lag ~8s',    time: '12m ago' },
+    uptimerobot: { status: 'green',   label: 'Operational', detail: '99.98% uptime',       time: '5m ago' },
+  },
+
+  demoIncidents: [
+    {
+      severity: 'p1',
+      title: 'Slack webhook latency elevated — 8s avg (SLA: <3s)',
+      service: 'Slack',
+      time: '09:14',
+      status: 'investigating',
+    },
+  ],
+
+  demoActions: [
+    { id: 1, text: 'Check Slack webhook retry queue in n8n',         tag: 'ops',     done: false },
+    { id: 2, text: 'Rotate Supabase service role key (90-day)',       tag: 'security',done: false },
+    { id: 3, text: 'Review WF-04 timeline engine run — 234 entries', tag: 'data',    done: false },
+    { id: 4, text: 'Update COST-BREAKDOWN.md with April numbers',    tag: 'docs',    done: true  },
+  ],
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════════════
+
+let state = {
+  statuses: {},
+  incidents: [],
+  actions: [],
+  actionDone: new Set(),
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════════════════════════════════
+
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2, '0');
+  const m = now.getMinutes().toString().padStart(2, '0');
+  document.getElementById('currentTime').textContent = `${h}:${m}`;
+
+  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  document.getElementById('footerTime').textContent = `${dateStr} · ${h}:${m}`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  DATA LOADING
+//  Replace these functions with real API calls once deployed.
+//  Each function should resolve to the same data shape.
+// ════════════════════════════════════════════════════════════════════
+
+async function loadStatuses() {
+  if (CONFIG.statusEndpoint) {
+    // REAL: fetch from your n8n webhook
+    // The endpoint should return JSON like:
+    // { "n8n": { "status": "green", "label": "Operational", "detail": "...", "time": "2m ago" }, ... }
+    try {
+      const r = await fetch(CONFIG.statusEndpoint);
+      return await r.json();
+    } catch (e) {
+      console.error('Status endpoint failed, using demo data:', e);
+    }
+  }
+
+  // DEMO: return static demo data with slight randomization to show it's "live"
+  const demo = { ...CONFIG.demoStatus };
+  // Simulate the Slack issue randomly resolving/persisting
+  if (Math.random() > 0.3) demo.slack.detail = `Webhook lag ~${Math.floor(Math.random() * 12) + 2}s`;
+  return demo;
+}
+
+async function loadIncidents() {
+  if (CONFIG.supabaseUrl && CONFIG.supabaseKey) {
+    // REAL: fetch from Supabase
+    // SELECT * FROM incidents WHERE resolved_at IS NULL ORDER BY created_at DESC LIMIT 10
+    try {
+      const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/incidents?resolved_at=is.null&order=created_at.desc&limit=10`, {
+        headers: {
+          'apikey': CONFIG.supabaseKey,
+          'Authorization': `Bearer ${CONFIG.supabaseKey}`,
+        }
+      });
+      return await r.json();
+    } catch (e) {
+      console.error('Incidents fetch failed, using demo data:', e);
+    }
+  }
+
+  return CONFIG.demoIncidents;
+}
+
+async function loadActions() {
+  if (CONFIG.supabaseUrl && CONFIG.supabaseKey) {
+    // REAL: fetch from Supabase
+    // SELECT * FROM actions ORDER BY created_at DESC LIMIT 20
+    try {
+      const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/actions?order=created_at.desc&limit=20`, {
+        headers: {
+          'apikey': CONFIG.supabaseKey,
+          'Authorization': `Bearer ${CONFIG.supabaseKey}`,
+        }
+      });
+      return await r.json();
+    } catch (e) {
+      console.error('Actions fetch failed, using demo data:', e);
+    }
+  }
+
+  return CONFIG.demoActions;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  RENDER FUNCTIONS
+// ════════════════════════════════════════════════════════════════════
+
+function renderSemaphores(statuses) {
+  const el = document.getElementById('semaphores');
+
+  el.innerHTML = CONFIG.services.map(service => {
+    const s = statuses[service.id] || { status: 'unknown', label: 'Unknown', detail: service.description, time: '' };
+    return `
+      <div class="semaphore ${s.status}" title="${service.name}: ${s.label}">
+        <div class="semaphore-top">
+          <span class="semaphore-name">${service.name}</span>
+          <span class="dot ${s.status}"></span>
+        </div>
+        <div class="semaphore-status">${s.label}</div>
+        <div class="semaphore-detail">${s.detail}</div>
+        <div class="semaphore-time">${s.time}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderIncidents(incidents) {
+  const el = document.getElementById('incidents');
+
+  if (!incidents || incidents.length === 0) {
+    el.innerHTML = `<div class="no-incidents">✓ No open incidents. All clear.</div>`;
+    return;
+  }
+
+  el.innerHTML = incidents.map(inc => `
+    <div class="incident">
+      <span class="incident-severity ${inc.severity || 'p2'}">${(inc.severity || 'P2').toUpperCase()}</span>
+      <div class="incident-body">
+        <div class="incident-title">${inc.title}</div>
+        <div class="incident-meta">${inc.service || ''} · ${inc.time || ''} · ${inc.status || 'open'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderActions(actions) {
+  const el = document.getElementById('actions');
+
+  if (!actions || actions.length === 0) {
+    el.innerHTML = `<div class="no-incidents">✓ No pending actions.</div>`;
+    return;
+  }
+
+  el.innerHTML = actions.map(action => {
+    const isDone = state.actionDone.has(action.id) || action.done;
+    return `
+      <div class="action-item ${isDone ? 'done' : ''}" onclick="toggleAction(${action.id}, this)">
+        <div class="action-checkbox">${isDone ? '✓' : ''}</div>
+        <span class="action-text">${action.text}</span>
+        ${action.tag ? `<span class="action-tag">${action.tag}</span>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  INTERACTIONS
+// ════════════════════════════════════════════════════════════════════
+
+function toggleAction(id, el) {
+  if (state.actionDone.has(id)) {
+    state.actionDone.delete(id);
+    el.classList.remove('done');
+    el.querySelector('.action-checkbox').textContent = '';
+  } else {
+    state.actionDone.add(id);
+    el.classList.add('done');
+    el.querySelector('.action-checkbox').textContent = '✓';
+  }
+}
+
+async function morningSync() {
+  const btn = document.getElementById('syncBtn');
+  const panel = document.getElementById('summaryPanel');
+  const text = document.getElementById('summaryText');
+  const syncTime = document.getElementById('syncTime');
+
+  btn.classList.add('loading');
+  btn.textContent = '...';
+
+  // Reload data
+  await refresh();
+
+  // Build summary from current state
+  const statuses = state.statuses;
+  const greenCount = Object.values(statuses).filter(s => s.status === 'green').length;
+  const yellowCount = Object.values(statuses).filter(s => s.status === 'yellow').length;
+  const redCount = Object.values(statuses).filter(s => s.status === 'red').length;
+  const total = Object.keys(statuses).length;
+
+  const openIncidents = state.incidents.filter(i => i.status !== 'resolved').length;
+  const pendingActions = state.actions.filter(a => !a.done && !state.actionDone.has(a.id)).length;
+
+  let summary = '';
+
+  if (redCount > 0) {
+    const redServices = Object.entries(statuses).filter(([, s]) => s.status === 'red').map(([id]) => id).join(', ');
+    summary += `<strong style="color:var(--red)">⚠ ${redCount} service(s) down:</strong> ${redServices}. `;
+  }
+  if (yellowCount > 0) {
+    const yellowServices = Object.entries(statuses).filter(([, s]) => s.status === 'yellow').map(([id]) => id).join(', ');
+    summary += `<span style="color:var(--yellow)">${yellowCount} degraded:</span> ${yellowServices}. `;
+  }
+  if (greenCount === total) {
+    summary += `<span style="color:var(--green)">All ${total} services operational.</span> `;
+  }
+
+  summary += `${openIncidents} open incident${openIncidents !== 1 ? 's' : ''}. `;
+  summary += `${pendingActions} action${pendingActions !== 1 ? 's' : ''} pending.`;
+
+  const now = new Date();
+  syncTime.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  text.innerHTML = summary;
+  panel.classList.add('visible');
+
+  btn.classList.remove('loading');
+  btn.textContent = 'SYNC';
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  MAIN REFRESH LOOP
+// ════════════════════════════════════════════════════════════════════
+
+async function refresh() {
+  try {
+    const [statuses, incidents, actions] = await Promise.all([
+      loadStatuses(),
+      loadIncidents(),
+      loadActions(),
+    ]);
+
+    state.statuses = statuses;
+    state.incidents = incidents;
+    state.actions = actions;
+
+    renderSemaphores(statuses);
+    renderIncidents(incidents);
+    renderActions(actions);
+
+    const now = new Date();
+    document.getElementById('lastRefresh').textContent =
+      now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  } catch (err) {
+    console.error('Refresh failed:', err);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════════
+
+updateClock();
+setInterval(updateClock, 1000);
+refresh();
+setInterval(refresh, CONFIG.refreshInterval);
+
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>

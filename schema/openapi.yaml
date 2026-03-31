@@ -1,0 +1,383 @@
+openapi: 3.0.3
+info:
+  title: "zero-cost-ops API"
+  version: 1.0.0
+  description: |
+    REST API specification for a zero-cost-ops system backend.
+    Built on Supabase (PostgreSQL + Edge Functions) with n8n automation.
+
+    **Base URL:** https://YOUR-PROJECT.supabase.co/v1
+    **Authentication:** OAuth 2.0 (GitHub, Google, Email) + JWT Bearer tokens
+
+    **Free tier limits:**
+    - Supabase: 500MB storage, 50K API calls/month
+    - n8n on Render: 750 hours/month free
+    - GitHub Pages: 100GB bandwidth/month free
+
+    Adapt this spec to match your own endpoint structure.
+  contact:
+    name: Your Name
+    email: your-email@example.com
+    url: https://github.com/ProyectoAna/zero-cost-ops
+
+servers:
+  - url: https://YOUR-PROJECT.supabase.co/v1
+    description: Production server (Supabase)
+  - url: https://staging-YOUR-PROJECT.supabase.co/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development
+
+paths:
+  /auth/oauth/start:
+    post:
+      summary: Initiate OAuth flow
+      description: Starts OAuth authentication with GitHub, Google, or Email
+      operationId: initOAuth
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+              properties:
+                provider:
+                  type: string
+                  enum: [github, google, email]
+                redirect_uri:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: OAuth URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  auth_url:
+                    type: string
+                    format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/oauth/callback:
+    get:
+      summary: Handle OAuth callback
+      description: Exchanges authorization code for JWT tokens
+      operationId: oauthCallback
+      tags:
+        - Authentication
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                  expires_in:
+                    type: integer
+
+  /api/diagnostic/analyze:
+    post:
+      summary: Analyze and classify content
+      description: |
+        Classifies content using Claude AI.
+        Calls Claude API (claude-sonnet-4-20250514) via n8n.
+        Expected latency: 1.5-5s, tokens: 1500-4000
+      operationId: analyzeDiagnostic
+      tags:
+        - Diagnostics
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticRequest'
+      responses:
+        '200':
+          description: Analysis complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          $ref: '#/components/responses/AIAPIError'
+
+  /api/diagnostic/{diagnostic_id}/recommendations:
+    get:
+      summary: Get recommendations for a diagnostic session
+      tags:
+        - Diagnostics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: diagnostic_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: detail_level
+          in: query
+          schema:
+            type: string
+            enum: [summary, detailed]
+            default: summary
+      responses:
+        '200':
+          description: Recommendations retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  diagnostic_id:
+                    type: string
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recommendation'
+
+  /api/user/profile:
+    get:
+      summary: Get user profile
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /api/webhooks/calendly:
+    post:
+      summary: Calendly webhook handler
+      description: "Receives booking events from Calendly. Validate webhook signature before processing."
+      tags:
+        - Webhooks
+      security:
+        - WebhookSignature: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendlyWebhook'
+      responses:
+        '200':
+          description: Webhook processed
+
+  /api/webhooks/stripe:
+    post:
+      summary: Stripe webhook handler
+      description: "Receives payment events from Stripe. Validate webhook signature before processing."
+      tags:
+        - Webhooks
+      security:
+        - WebhookSignature: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeWebhook'
+      responses:
+        '200':
+          description: Webhook processed
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT issued by Supabase Auth. Expires in 1 hour. Refresh with /auth/refresh."
+    WebhookSignature:
+      type: apiKey
+      in: header
+      name: X-Webhook-Signature
+      description: "HMAC-SHA256 signature from webhook provider (Calendly, Stripe, etc.)"
+
+  schemas:
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          description: "Seconds until access token expires. Default: 3600"
+        user_id:
+          type: string
+        email:
+          type: string
+
+    DiagnosticRequest:
+      type: object
+      required:
+        - user_input
+      properties:
+        user_input:
+          type: string
+          description: "The content to analyze"
+        session_id:
+          type: string
+          description: "Unique session identifier (generate client-side)"
+        context:
+          type: object
+          description: "Optional context to improve classification accuracy"
+          properties:
+            source:
+              type: string
+              description: "Where this content came from (slack, github, manual, etc.)"
+            timestamp:
+              type: string
+              format: date-time
+
+    DiagnosticResponse:
+      type: object
+      properties:
+        diagnostic_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        classification:
+          type: object
+          properties:
+            tags:
+              type: array
+              items:
+                type: string
+            entities:
+              type: array
+              items:
+                type: string
+            summary:
+              type: string
+            narrative_role:
+              type: string
+              enum: [setup, origin, exploration, conflict, realisation, integration]
+            timeline_group:
+              type: string
+            date_estimated:
+              type: string
+
+    Recommendation:
+      type: object
+      properties:
+        category:
+          type: string
+        message:
+          type: string
+        priority:
+          type: string
+          enum: [high, medium, low]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        full_name:
+          type: string
+        avatar_url:
+          type: string
+        usage:
+          type: object
+          properties:
+            entries_this_month:
+              type: integer
+            api_calls_this_month:
+              type: integer
+
+    CalendlyWebhook:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [invitee.created, invitee.canceled]
+        payload:
+          type: object
+
+    StripeWebhook:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [payment_intent.succeeded, payment_intent.payment_failed, customer.subscription.created]
+        data:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Invalid request — check your payload structure
+    Unauthorized:
+      description: Missing or invalid JWT token — re-authenticate
+    RateLimitExceeded:
+      description: Too many requests — back off and retry
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: "Seconds to wait before retrying"
+    AIAPIError:
+      description: AI API call failed — check provider status and API key validity
